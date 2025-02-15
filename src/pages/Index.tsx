@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 export default function Index() {
   const [place, setPlace] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [history, setHistory] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -22,6 +23,14 @@ export default function Index() {
       return;
     }
 
+    if (!apiKey.trim()) {
+      toast({
+        title: "Please enter your Gemini API key",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch("https://supabase-edge-functions-url/generate-history", {
@@ -30,7 +39,7 @@ export default function Index() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ place }),
+        body: JSON.stringify({ place, apiKey }),
       });
 
       if (!response.ok) throw new Error("Failed to generate history");
@@ -67,6 +76,13 @@ export default function Index() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="relative">
+            <Input
+              type="password"
+              placeholder="Enter your Gemini API key..."
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="h-14 px-6 text-lg bg-white/80 backdrop-blur-sm border-zinc-200 shadow-sm transition-all focus:ring-2 focus:ring-zinc-300 dark:bg-zinc-800/80 dark:border-zinc-700 mb-4"
+            />
             <Input
               type="text"
               placeholder="Enter a place name..."
