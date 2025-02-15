@@ -1,14 +1,13 @@
-
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import HistoryDisplay from "@/components/history";
 
 export default function Index() {
   const [place, setPlace] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [history, setHistory] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -23,29 +22,26 @@ export default function Index() {
       return;
     }
 
-    if (!apiKey.trim()) {
-      toast({
-        title: "Please enter your Gemini API key",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const response = await fetch("https://supabase-edge-functions-url/generate-history", {
+      const response = await fetch("http://localhost:3030/generate", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ place, apiKey }),
+        body: JSON.stringify({ place }),
       });
 
       if (!response.ok) throw new Error("Failed to generate history");
 
-      const data = await response.json();
-      setHistory(data.generatedText);
+      const data = await response.json(); // ✅ Parse response as JSON
+      console.log("data is: ",data.data.result.response); // Debugging
+
+      if (data.data.result.response) {
+        setHistory(data.data.result.response); // ✅ Extract history correctly
+      } else {
+        throw new Error("Invalid response format");
+      }
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -77,13 +73,6 @@ export default function Index() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="relative">
             <Input
-              type="password"
-              placeholder="Enter your Gemini API key..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="h-14 px-6 text-lg bg-white/80 backdrop-blur-sm border-zinc-200 shadow-sm transition-all focus:ring-2 focus:ring-zinc-300 dark:bg-zinc-800/80 dark:border-zinc-700 mb-4"
-            />
-            <Input
               type="text"
               placeholder="Enter a place name..."
               value={place}
@@ -106,22 +95,7 @@ export default function Index() {
         </form>
 
         <AnimatePresence>
-          {history && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mt-12 p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-zinc-100 dark:bg-zinc-800/80 dark:border-zinc-700"
-            >
-              <div className="prose prose-zinc max-w-none dark:prose-invert">
-                {history.split("\n").map((paragraph, index) => (
-                  <p key={index} className="mb-4 last:mb-0">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </motion.div>
-          )}
+          {history && <HistoryDisplay history={history} />}
         </AnimatePresence>
       </div>
     </div>
