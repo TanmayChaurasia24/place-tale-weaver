@@ -24,9 +24,12 @@ export default function Index() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/generate-history", {
+      const response = await fetch("https://supabase-edge-functions-url/generate-history", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+        },
         body: JSON.stringify({ place }),
       });
 
@@ -35,6 +38,7 @@ export default function Index() {
       const data = await response.json();
       setHistory(data.generatedText);
     } catch (error) {
+      console.error("Error:", error);
       toast({
         title: "Error generating history",
         description: "Please try again later",
