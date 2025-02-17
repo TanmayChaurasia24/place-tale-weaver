@@ -1,14 +1,10 @@
-version: '3.8'
-
 services:
   frontend:
     build:
       context: .
     container_name: frontend
     ports:
-      - "8080:8080"
-    volumes:
-      - ./frontend:/app  
+      - "8080:8080" 
     networks:
       - place-tale
     depends_on:
@@ -19,13 +15,11 @@ services:
       context: ./backend 
     container_name: backend
     ports:
-      - "3030:3030"
-    volumes:
-      - ./backend:/app  
+      - "3030:3030" 
     networks:
       - place-tale
     env_file:
-      - .env 
+      - ./backend/.env
     depends_on:
       - mongodb
 
