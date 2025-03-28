@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Moon, Sun, Search, MapPin } from "lucide-react";
+import { Loader2, Moon, Sun, Search, MapPin, History, Globe, Info } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import CityHistory from "@/components/CityHistory";
 
