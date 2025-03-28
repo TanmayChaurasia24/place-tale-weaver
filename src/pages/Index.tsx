@@ -24,17 +24,7 @@ export default function Index() {
 
     setIsLoading(true);
     try {
-      const dbResponse = await fetch(`http://localhost:3030/api/content/${place}`);
-      if (dbResponse.ok) {
-        const dbData = await dbResponse.json();
-        if (dbData.success) {
-          setHistory(dbData.message);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      const response = await fetch("http://localhost:3030/api/generate", {
+      const response = await fetch("http://localhost:3030/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -44,11 +34,11 @@ export default function Index() {
 
       if (!response.ok) throw new Error("Failed to generate history");
 
-      const data = await response.json();
-      console.log("data is: ", data);
+      const data = await response.json(); // ✅ Parse response as JSON
+      console.log("data is: ",data.data.result.response); // Debugging
 
-      if (data.success) {
-        setHistory(data.content);
+      if (data.data.result.response) {
+        setHistory(data.data.result.response); // ✅ Extract history correctly
       } else {
         throw new Error("Invalid response format");
       }
