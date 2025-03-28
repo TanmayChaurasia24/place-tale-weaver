@@ -4,7 +4,7 @@ import cors from "cors";
 import chatModel from "./model/chat.model";
 import connectdb from "./db";
 
-connectdb()
+connectdb();
 
 dotenv.config();
 const port = 3030;
@@ -17,6 +17,27 @@ app.use(
   })
 );
 
+// Route to check if the place exists in the database
+app.get("/api/content/:place", async (req: Request, res: Response): Promise<any> => {
+  const { place } = req.params;
+  try {
+    const isthere = await chatModel.findOne({ place: place.toLowerCase() });
+
+    if (isthere) {
+      return res.status(200).json({ success: true, message: isthere.content });
+    }
+
+    return res.status(404).json({ success: false, message: "Content not found" });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching content",
+      error: error.message || "Unknown error",
+    });
+  }
+});
+
+// Route to generate content if not found
 app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
   const model = process.env.CONTENT_GENERATION_MODEL;
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
@@ -34,12 +55,6 @@ app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
   }
 
   try {
-    const isthere = await chatModel.findOne({ place: place.toLowerCase() });
-
-    if (isthere) {
-      return res.status(200).json({ success: true, message: isthere.content });
-    }
-
     const apiUrl = `https://api.cloudflare.com/client/v4/accounts/a08822ecd78ffb3acede87da0e234c0e/ai/run/${model}`;
 
     const requestBody = {
@@ -47,11 +62,9 @@ app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
         { role: "system", content: "You are a friendly assistant" },
         { role: "user", content: `Generate the history of ${place}, include historical places, culture, events, and geography with proper headings.` },
       ],
-      max_tokens: 2048, // Ensure it's inside the body
+      max_tokens: 2048,
     };
 
-    console.log("Sending request to API:", apiUrl);
-    console.log("Request Body:", requestBody);
 
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -64,7 +77,7 @@ app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
 
     const contentType = response.headers.get("content-type");
     if (!response.ok) {
-      const errorText = await response.text(); // Read response text for debugging
+      const errorText = await response.text();
       console.error("API Response Error:", errorText);
       throw new Error(`API Error: ${response.status} - ${response.statusText}`);
     }
@@ -74,14 +87,13 @@ app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
     }
 
     const data = await response.json();
-    console.log(data.result.response);
     
     await chatModel.create({
       place: place.toLowerCase(),
       content: data.result.response,
     });
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, content: data.result.response});
   } catch (error: any) {
     console.error("Error generating content:", error.message);
 
