@@ -24,7 +24,7 @@ export default function Index() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3030/generate", {
+      const response = await fetch("http://localhost:3030/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

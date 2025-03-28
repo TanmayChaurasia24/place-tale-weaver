@@ -1,7 +1,10 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import chatModel from "./model/chat.model";
+import connectdb from "./db";
 
+connectdb()
 
 dotenv.config();
 const port = 3030;
@@ -31,8 +34,14 @@ app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
   }
 
   try {
+    const isthere = await chatModel.findOne({ place: place.toLowerCase() });
+
+    if (isthere) {
+      return res.status(200).json({ success: true, message: isthere.content });
+    }
+
     const apiUrl = `https://api.cloudflare.com/client/v4/accounts/a08822ecd78ffb3acede87da0e234c0e/ai/run/${model}`;
-    
+
     const requestBody = {
       messages: [
         { role: "system", content: "You are a friendly assistant" },
@@ -65,9 +74,14 @@ app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
     }
 
     const data = await response.json();
-    console.log("Received Data:", data);
+    console.log(data.result.response);
+    
+    await chatModel.create({
+      place: place.toLowerCase(),
+      content: data.result.response,
+    });
 
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true });
   } catch (error: any) {
     console.error("Error generating content:", error.message);
 
