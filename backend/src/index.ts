@@ -14,7 +14,7 @@ app.use(
   })
 );
 
-app.post("/generate", async (req: Request, res: Response): Promise<any> => {
+app.post("/api/generate", async (req: Request, res: Response): Promise<any> => {
   const model = process.env.CONTENT_GENERATION_MODEL;
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 
