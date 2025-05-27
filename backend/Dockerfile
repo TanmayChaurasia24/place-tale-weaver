@@ -1,7 +1,12 @@
-FROM node:18-alpine
+FROM node:24-slim
+
+RUN mkdir -p /app
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package*.json ./
+
 RUN npm install
+
 COPY . .
-EXPOSE 5000
-CMD ["node","dist/index.js"]
+
+EXPOSE 3030
+CMD [ "npm","run", "dev" ]
