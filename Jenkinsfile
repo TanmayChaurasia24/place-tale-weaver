@@ -4,17 +4,18 @@ pipeline {
     environment {
         BACKEND_IMAGE = "tanmaykumarchaurasia/place-tale-teller-backend"
         FRONTEND_IMAGE = "tanmaykumarchaurasia/place-tale-teller-frontend"
-        REMOTE_PATH = "/home/ubuntu/place-tale-prod"
+        BACKEND_TAG = "prod"
+        FRONTEND_TAG = "prod"
     }
 
     stages {
-        stage("Clone Code") {
+        stage("Clone Repository") {
             steps {
                 git url: 'https://github.com/TanmayChaurasia24/place-tale-weaver.git', branch: 'main'
             }
         }
 
-        stage("Generate .env") {
+        stage("Generate .env for Backend") {
             steps {
                 withCredentials([string(credentialsId: 'MONGO_URI', variable: 'MONGO_URI')]) {
                     writeFile file: 'backend/.env', text: "MONGO_URI=${MONGO_URI}"
@@ -22,47 +23,49 @@ pipeline {
             }
         }
 
-        stage("Build Docker Images") {
+        stage("Build & Tag Docker Images") {
             steps {
-                sh 'docker build -t ${BACKEND_IMAGE}:prod ./backend'
-                sh 'docker build -t ${FRONTEND_IMAGE}:prod ./frontend'
+                sh """
+                    docker build -t ${BACKEND_IMAGE}:${BACKEND_TAG} ./backend
+                    docker build -t ${FRONTEND_IMAGE}:${FRONTEND_TAG} ./frontend
+                """
             }
         }
 
-        stage("Push to DockerHub") {
+        stage("Push Images to Docker Hub") {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push ${BACKEND_IMAGE}:prod
-                        docker push ${FRONTEND_IMAGE}:prod
+                        docker push ${BACKEND_IMAGE}:${BACKEND_TAG}
+                        docker push ${FRONTEND_IMAGE}:${FRONTEND_TAG}
                     '''
                 }
             }
         }
 
-        stage("Clean .env") {
+        stage("Clean Up .env") {
             steps {
                 sh 'rm -f backend/.env'
             }
         }
 
-        stage("Deploy to EC2") {
+        stage("Deploy to Kubernetes") {
             steps {
-                sshagent(['ec2-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@your-ec2-ip << EOF
-                            mkdir -p ${REMOTE_PATH}
-                            cd ${REMOTE_PATH}
-                            docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
-                            docker pull ${BACKEND_IMAGE}:prod
-                            docker pull ${FRONTEND_IMAGE}:prod
-                            docker pull nginx:latest
-                            docker-compose up
-                        EOF
-                    """
-                }
+                sh """
+                    kubectl apply -f k8s/namespace.yml
+                    kubectl apply -f k8s/mongo-deployment.yml
+                    kubectl apply -f k8s/mongo-service.yml
+
+                    kubectl set image deployment/backend backend=${BACKEND_IMAGE}:${BACKEND_TAG} -n place-tale || kubectl apply -f k8s/backend-deployment.yml
+                    kubectl apply -f k8s/backend-service.yml
+
+                    kubectl set image deployment/frontend frontend=${FRONTEND_IMAGE}:${FRONTEND_TAG} -n place-tale || kubectl apply -f k8s/frontend-deployment.yml
+                    kubectl apply -f k8s/frontend-service.yml
+
+                """
             }
         }
     }
 }
+
